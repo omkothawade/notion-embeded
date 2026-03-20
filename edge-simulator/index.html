@@ -1,1 +1,273 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Edge Simulator</title>
 
+<style>
+* {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+  font-family: system-ui, -apple-system, sans-serif;
+}
+
+body {
+  background: #f5f5f4;
+  padding: 20px;
+  color: #1c1c1c;
+}
+
+.container {
+  max-width: 700px;
+  margin: auto;
+}
+
+/* Header */
+.title {
+  font-size: 20px;
+  font-weight: 600;
+  margin-bottom: 14px;
+}
+
+/* Card */
+.card {
+  background: #f0efec;
+  border-radius: 16px;
+  padding: 18px;
+  margin-bottom: 18px;
+}
+
+/* Slider */
+.slider-row {
+  display: flex;
+  align-items: center;
+  margin: 14px 0;
+}
+
+.slider-row label {
+  width: 140px;
+  font-size: 14px;
+  color: #444;
+}
+
+.slider-row input {
+  flex: 1;
+  margin: 0 10px;
+}
+
+.slider-row span {
+  width: 70px;
+  text-align: right;
+  font-weight: 600;
+}
+
+/* Range style */
+input[type=range] {
+  appearance: none;
+  height: 4px;
+  background: #d6d3d1;
+  border-radius: 4px;
+}
+
+input[type=range]::-webkit-slider-thumb {
+  appearance: none;
+  width: 16px;
+  height: 16px;
+  border-radius: 50%;
+  background: white;
+  border: 2px solid #9ca3af;
+  cursor: pointer;
+}
+
+/* Stats */
+.stats {
+  display: grid;
+  grid-template-columns: repeat(3,1fr);
+  gap: 12px;
+}
+
+.stat {
+  background: #e9e7e4;
+  border-radius: 14px;
+  padding: 16px;
+  text-align: center;
+}
+
+.stat .value {
+  font-size: 26px;
+  font-weight: 700;
+}
+
+.stat .label {
+  font-size: 14px;
+  margin-top: 4px;
+  color: #555;
+}
+
+/* Colors */
+.green { color: #3f6212; }
+.red { color: #991b1b; }
+
+/* Progress */
+.progress {
+  height: 10px;
+  background: #e7e5e4;
+  border-radius: 10px;
+  margin: 14px 0;
+  overflow: hidden;
+}
+
+.fill {
+  height: 100%;
+  background: #65a30d;
+  border-radius: 10px;
+}
+
+/* Breakdown */
+.breakdown {
+  display: flex;
+  justify-content: space-between;
+  font-size: 14px;
+  margin-bottom: 10px;
+}
+
+/* Verdict */
+.verdict {
+  padding: 16px;
+  border-radius: 14px;
+  text-align: center;
+  font-size: 16px;
+  font-weight: 600;
+}
+
+.good { background: #dbe4d3; color: #2f4f1f; }
+.bad { background: #ead2d2; color: #7f1d1d; }
+.mid { background: #efe3c7; color: #7c5a00; }
+
+</style>
+</head>
+
+<body>
+
+<div class="container">
+
+<div class="title">See your edge play out over many trades</div>
+
+<div class="card">
+
+<div class="slider-row">
+<label>Win rate (%)</label>
+<input type="range" id="wr" min="10" max="90" value="50">
+<span id="wrv">50%</span>
+</div>
+
+<div class="slider-row">
+<label>Avg win ($)</label>
+<input type="range" id="aw" min="50" max="500" value="200">
+<span id="awv">$200</span>
+</div>
+
+<div class="slider-row">
+<label>Avg loss ($)</label>
+<input type="range" id="al" min="50" max="500" value="100">
+<span id="alv">$100</span>
+</div>
+
+<div class="slider-row">
+<label>Trades</label>
+<input type="range" id="tr" min="10" max="500" value="100">
+<span id="trv">100</span>
+</div>
+
+</div>
+
+<div class="stats">
+<div class="stat">
+<div class="value" id="profit">$0</div>
+<div class="label">Expected profit</div>
+</div>
+
+<div class="stat">
+<div class="value" id="rr">2.0:1</div>
+<div class="label">Reward:Risk</div>
+</div>
+
+<div class="stat">
+<div class="value" id="exp">$0</div>
+<div class="label">Per trade (avg)</div>
+</div>
+</div>
+
+<div style="margin-top:16px; font-size:15px;">Win/loss breakdown</div>
+
+<div class="progress">
+<div class="fill" id="fill"></div>
+</div>
+
+<div class="breakdown">
+<span id="wins">50 wins</span>
+<span id="losses">50 losses</span>
+</div>
+
+<div id="verdict" class="verdict"></div>
+
+</div>
+
+<script>
+const wr = document.getElementById("wr");
+const aw = document.getElementById("aw");
+const al = document.getElementById("al");
+const tr = document.getElementById("tr");
+
+function update() {
+  let winRate = +wr.value;
+  let avgWin = +aw.value;
+  let avgLoss = +al.value;
+  let trades = +tr.value;
+
+  document.getElementById("wrv").textContent = winRate + "%";
+  document.getElementById("awv").textContent = "$" + avgWin;
+  document.getElementById("alv").textContent = "$" + avgLoss;
+  document.getElementById("trv").textContent = trades;
+
+  let wins = Math.round(trades * winRate / 100);
+  let losses = trades - wins;
+
+  let profit = wins * avgWin - losses * avgLoss;
+  let rr = (avgWin / avgLoss).toFixed(1);
+  let exp = (profit / trades).toFixed(0);
+
+  const profitEl = document.getElementById("profit");
+  const verdict = document.getElementById("verdict");
+
+  profitEl.textContent = (profit >= 0 ? "+$" : "-$") + Math.abs(profit).toLocaleString();
+  profitEl.className = "value " + (profit >= 0 ? "green" : "red");
+
+  document.getElementById("rr").textContent = rr + ":1";
+  document.getElementById("exp").textContent = (exp >= 0 ? "+$" : "-$") + Math.abs(exp);
+
+  document.getElementById("fill").style.width = winRate + "%";
+  document.getElementById("wins").textContent = wins + " wins";
+  document.getElementById("losses").textContent = losses + " losses";
+
+  if (profit > 0) {
+    verdict.textContent = "You have a profitable edge — over " + trades + " trades you make $" + profit.toLocaleString();
+    verdict.className = "verdict good";
+  } else if (profit === 0) {
+    verdict.textContent = "Break-even — no edge yet";
+    verdict.className = "verdict mid";
+  } else {
+    verdict.textContent = "Losing edge — fix your risk or win rate";
+    verdict.className = "verdict bad";
+  }
+}
+
+[wr, aw, al, tr].forEach(el => el.addEventListener("input", update));
+
+update();
+</script>
+
+</body>
+</html>
